@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Form</title>
+    <link rel="stylesheet" href="/css/form.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Create Your Account</h1>
+        <form id="registrationForm" enctype="multipart/form-data" method="post">
+            <!-- CSRF Token (Will be populated by server) -->
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <!-- First Name -->
+            <div class="group_form">
+                <label for="firstName">First Name:</label>
+                <input type="text" name="firstName" id="firstName" 
+                       placeholder="Enter your name" required
+                       aria-describedby="firstNameError">
+                <div class="error-message" id="firstNameError" role="alert" aria-live="polite">
+                    First name is required.
+                </div>
+            </div>
+
+            <!-- Last Name -->
+            <div class="group_form">
+                <label for="lastName">Last Name:</label>
+                <input type="text" name="lastName" id="lastName" 
+                       placeholder="Enter your last name" required
+                       aria-describedby="lastNameError">
+                <div class="error-message" id="lastNameError" role="alert" aria-live="polite">
+                    Last name is required.
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="group_form">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" 
+                       placeholder="Enter your password" required
+                       aria-describedby="passwordError passwordStrength">
+                <div class="password-strength" id="passwordStrength" aria-live="polite"></div>
+                <div class="error-message" id="passwordError" role="alert">
+                    Password must be at least 8 characters with a letter and number.
+                </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="group_form">
+                <label for="confirmPassword">Confirm Password:</label>
+                <input type="password" name="confirmPassword" id="confirmPassword" 
+                       placeholder="Confirm your password" required
+                       aria-describedby="confirmPasswordError">
+                <div class="error-message" id="confirmPasswordError" role="alert" aria-live="polite">
+                    Passwords do not match.
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="group_form">
+                <label for="email">Email:</label>
+                <input type="email" name="email" id="email" 
+                       placeholder="Enter your email" required
+                       aria-describedby="emailError">
+                <div class="error-message" id="emailError" role="alert" aria-live="polite">
+                    Please enter a valid email address.
+                </div>
+            </div>
+
+            <!-- Date of Birth -->
+            <div class="group_form">
+                <label for="dateOfBirth">Date of Birth:</label>
+                <input type="date" name="dateOfBirth" id="dateOfBirth" required
+                       aria-describedby="dobError">
+                <div class="error-message" id="dobError" role="alert" aria-live="polite">
+                    You must be at least 13 years old.
+                </div>
+            </div>
+
+            <!-- Gender -->
+            <div class="group_form">
+                <label for="gender">Gender:</label>
+                <select name="gender" id="gender" required
+                        aria-describedby="genderError">
+                    <option value="">Select your gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+                <div class="error-message" id="genderError" role="alert" aria-live="polite">
+                    Please select your gender.
+                </div>
+            </div>
+
+            <!-- Biography -->
+            <div class="group_form">
+                <label for="biography">Biography:</label>
+                <textarea name="biography" id="biography" rows="4" 
+                          placeholder="Tell us about yourself..."
+                          aria-describedby="biographyHelp"></textarea>
+            </div>
+
+            <!-- Profile Picture -->
+            <div class="group_form">
+                <label for="profilePicture">Profile Picture:</label>
+                <input type="file" name="profilePicture" id="profilePicture" 
+                       accept="image/*" required
+                       aria-describedby="profilePictureError">
+                <div class="error-message" id="profilePictureError" role="alert" aria-live="polite">
+                    Please upload a profile picture (JPEG/PNG)
+                </div>
+                <img id="imagePreview" class="image-preview" alt="Image preview">
+            </div>
+
+            <!-- Register Button -->
+            <div class="group_form">
+                <button type="submit" id="registerButton">Register</button>
+            </div>
+        </form>
+        <div class="loading-spinner" id="loadingSpinner"></div>
+    </div>
+
+    <script>
+        // Add image preview functionality
+        const profilePictureInput = document.getElementById('profilePicture');
+        const imagePreview = document.getElementById('imagePreview');
+        const form = document.getElementById('registrationForm');
+        const submitBtn = document.getElementById('registerButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        let isSubmitting = false;
+
+        profilePictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.style.display = 'block';
+                    imagePreview.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Modified form submission
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (isSubmitting) return;
+
+            isSubmitting = true;
+            submitBtn.disabled = true;
+            loadingSpinner.style.display = 'block';
+
+            try {
+                // Convert image to Base64 for Cloudinary
+                const file = profilePictureInput.files[0];
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+
+                reader.onload = async () => {
+                    try {
+                        const base64Data = reader.result.split(',')[1];
+                        const formData = new FormData(form);
+                        formData.set('profilePicture', base64Data);
+
+                        const response = await fetch('/register', {
+                            method: 'POST',
+                            body: JSON.stringify(Object.fromEntries(formData)),
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        // Handle response
+                        if (response.ok) {
+                            window.location.href = '/success'; // Redirect on success
+                        } else {
+                            const errorData = await response.json();
+                            console.error('Registration error:', errorData);
+                            alert('Registration failed: ' + errorData.error);
+                        }
+                    } catch (error) {
+                        console.error('Error during registration:', error);
+                        alert('An error occurred. Please try again later.');
+                    } finally {
+                        isSubmitting = false;
+                        submitBtn.disabled = false;
+                        loadingSpinner.style.display = 'none';
+                    }
+                };
+
+            } catch (error) {
+                console.error('Error during form submission:', error);
+                alert('An error occurred. Please try again later.');
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                loadingSpinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Keep existing styles -->
+    <style>
+        /* Added Cloudinary image optimization */
+        .registration img {
+            width: 200px;
+            height: 200px; /* Square aspect ratio */
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid #2c3e50;
+            transition: transform 0.3s ease;
+        }
+
+        .registration img:hover {
+            transform: scale(1.05);
+            cursor: zoom-in;
+        }
+
+        /* Cloudinary quality optimization */
+        .registration img[src*="cloudinary"] {
+            image-rendering: -webkit-optimize-contrast;
+        }
+    </style>
+</head>
+<body>
+    <h1>View Registrations</h1>
+    <div id="registrations"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        async function loadRegistrations(page = 1) {
+            const credentials = prompt('Enter admin credentials (username:password)');
+            if (!credentials) return;
+            
+            try {
+                const response = await fetch(`/api/registrations?page=${page}&limit=10`, {
+                    headers: { 'Authorization': `Basic ${btoa(credentials)}` }
+                });
+
+                if (!response.ok) {
+                    alert('Authentication failed or server error');
+                    return;
+                }
+
+                const data = await response.json();
+                totalPages = data.totalPages;
+                currentPage = data.page;
+
+                const registrationsDiv = document.getElementById('registrations');
+                registrationsDiv.innerHTML = data.docs.map(reg => {
+                    // Cloudinary image transformations
+                    const optimizedImageUrl = reg.profilePicture
+                        .replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
+
+                    return `
+                        <div class="registration">
+                            <img src="${optimizedImageUrl}" 
+                                 alt="${reg.firstName}'s profile picture"
+                                 onclick="window.open('${reg.profilePicture}')">
+                            <p><strong>Name:</strong> ${reg.firstName} ${reg.lastName}</p>
+                            <p><strong>Email:</strong> ${reg.email}</p>
+                            <p><strong>DOB:</strong> ${new Date(reg.dateOfBirth).toLocaleDateString()}</p>
+                            <p><strong>Gender:</strong> ${reg.gender}</p>
+                            ${reg.biography ? `<p><strong>Bio:</strong> ${reg.biography}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                // Pagination code remains the same
+                const paginationDiv = document.getElementById('pagination');
+                paginationDiv.innerHTML = `
+                    <button ${currentPage === 1 ? 'disabled' : ''} onclick="loadRegistrations(${currentPage - 1})">Previous</button>
+                    <span>Page ${currentPage} of ${totalPages}</span>
+                    <button ${currentPage >= totalPages ? 'disabled' : ''} onclick="loadRegistrations(${currentPage + 1})">Next</button>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load registrations');
+            }
+        }
+
+        // Initial load
+        loadRegistrations();
+    </script>
+</body>
+</html>
