@@ -44,8 +44,8 @@ const Registration = mongoose.model('Registration', registrationSchema);
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware with increased body size limit
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, '../public')));
